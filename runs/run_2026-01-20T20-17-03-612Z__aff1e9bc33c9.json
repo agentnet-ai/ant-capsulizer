@@ -1,0 +1,59 @@
+{
+  "runId": "run_2026-01-20T20-17-03-612Z__aff1e9bc33c9",
+  "startedAt": "2026-01-20T20:17:03.612Z",
+  "finishedAt": "2026-01-20T20:17:33.768Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "addicaretx-net",
+    "url": "https://addicaretx.net"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry"
+  },
+  "node": {
+    "nodeId": 59,
+    "nodeCategory": "landing"
+  },
+  "summary": {
+    "pages": 0,
+    "capsules": 0,
+    "inferred": 0,
+    "errors": 1,
+    "inserted": 0,
+    "rejected": 0,
+    "schemaErrors": 0
+  },
+  "capsules": [
+    {
+      "url": "https://addicaretx.net",
+      "finishedAt": "2026-01-20T20:17:33.755Z",
+      "pages": 0,
+      "capsules": 0,
+      "inserted": 0,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-20T20-17-03-612Z__aff1e9bc33c9.json",
+  "nodeCategory": "landing",
+  "agentnet:cgOutput": {
+    "capsulesInserted": 0,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

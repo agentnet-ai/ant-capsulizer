@@ -1,0 +1,59 @@
+{
+  "runId": "run_2026-01-20T20-19-46-237Z__48a7f90b78fb",
+  "startedAt": "2026-01-20T20:19:46.237Z",
+  "finishedAt": "2026-01-20T20:19:47.946Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "mentalhealthcounselingla-com",
+    "url": "https://mentalhealthcounselingla.com"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry"
+  },
+  "node": {
+    "nodeId": 211,
+    "nodeCategory": "corporate"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 1,
+    "errors": 0,
+    "inserted": 1,
+    "rejected": 0,
+    "schemaErrors": 0
+  },
+  "capsules": [
+    {
+      "url": "https://mentalhealthcounselingla.com",
+      "finishedAt": "2026-01-20T20:19:47.934Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 1,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-20T20-19-46-237Z__48a7f90b78fb.json",
+  "nodeCategory": "corporate",
+  "agentnet:cgOutput": {
+    "capsulesInserted": 1,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

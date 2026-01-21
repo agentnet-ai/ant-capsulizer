@@ -1,0 +1,59 @@
+{
+  "runId": "run_2026-01-20T18-52-37-631Z__16a59d0549ff",
+  "startedAt": "2026-01-20T18:52:37.631Z",
+  "finishedAt": "2026-01-20T18:53:07.764Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "carsterosystemsva-com",
+    "url": "https://carsterosystemsva.com"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry"
+  },
+  "node": {
+    "nodeId": 176,
+    "nodeCategory": "landing"
+  },
+  "summary": {
+    "pages": 0,
+    "capsules": 0,
+    "inferred": 0,
+    "errors": 1,
+    "inserted": 0,
+    "rejected": 0,
+    "schemaErrors": 0
+  },
+  "capsules": [
+    {
+      "url": "https://carsterosystemsva.com",
+      "finishedAt": "2026-01-20T18:53:07.751Z",
+      "pages": 0,
+      "capsules": 0,
+      "inserted": 0,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-20T18-52-37-631Z__16a59d0549ff.json",
+  "nodeCategory": "landing",
+  "agentnet:cgOutput": {
+    "capsulesInserted": 0,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

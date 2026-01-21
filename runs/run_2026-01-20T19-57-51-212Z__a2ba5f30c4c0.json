@@ -1,0 +1,59 @@
+{
+  "runId": "run_2026-01-20T19-57-51-212Z__a2ba5f30c4c0",
+  "startedAt": "2026-01-20T19:57:51.212Z",
+  "finishedAt": "2026-01-20T19:57:53.179Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "bobtransmn-com",
+    "url": "https://bobtransmn.com"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry"
+  },
+  "node": {
+    "nodeId": 48,
+    "nodeCategory": "corporate"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 1,
+    "errors": 0,
+    "inserted": 1,
+    "rejected": 0,
+    "schemaErrors": 0
+  },
+  "capsules": [
+    {
+      "url": "https://bobtransmn.com",
+      "finishedAt": "2026-01-20T19:57:53.167Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 1,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-20T19-57-51-212Z__a2ba5f30c4c0.json",
+  "nodeCategory": "corporate",
+  "agentnet:cgOutput": {
+    "capsulesInserted": 1,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

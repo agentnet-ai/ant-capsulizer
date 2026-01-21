@@ -11,7 +11,19 @@ const Ajv = require("ajv");
 const addFormats = require("ajv-formats");
 
 const { checkProtocol } = require("./utils/checkProtocol");
-const { connection, queueName } = require("./queue");
+
+// Queue imports
+// Accept both legacy and new exports to minimize breakage
+const queueMod = require("./queue");
+const connection = queueMod.connection;
+const queueName =
+  queueMod.queueName ||
+  queueMod.queueNameLegacy ||
+  queueMod.queue ||
+  queueMod.queueName; // keep tolerant
+const inquiryQueueName = queueMod.inquiryQueueName || process.env.INQUIRY_QUEUE_NAME || "resolver-inquiry";
+const inquiryQueue = queueMod.inquiryQueue || null;
+
 const { upsertNode, insertCapsule, pool } = require("./db");
 const { fp } = require("./normalize");
 const { inferCapsule } = require("./inferencer");
@@ -52,6 +64,45 @@ const VALIDATE_ENVELOPE = (process.env.VALIDATE_ENVELOPE ?? "true").toLowerCase(
 // Determinism: disable LLM
 const EFFECTIVE_ENABLE_LLM = CG_DETERMINISTIC ? false : ENABLE_LLM;
 
+// Inquiry enqueue toggle (default true if inquiryQueue is available)
+const ENABLE_INQUIRY_ENQUEUE =
+  (process.env.ENABLE_INQUIRY_ENQUEUE ?? "true").toLowerCase() === "true" && Boolean(inquiryQueue);
+
+// Inquiry job naming
+const INQUIRY_JOB_NAME = process.env.INQUIRY_JOB_NAME || "inquire";
+
+// ------------------------------
+// Enhancement #1: Boot logging + sanity checks
+// ------------------------------
+(function bootLog() {
+  const safe = (v) => (v == null ? null : String(v));
+  console.log("[WORKER] Boot config:");
+  console.log("  pid:", process.pid);
+  console.log("  cwd:", process.cwd());
+  console.log("  queueName:", queueName);
+  console.log("  inquiryQueueName:", inquiryQueueName);
+  console.log("  ENABLE_INQUIRY_ENQUEUE:", ENABLE_INQUIRY_ENQUEUE);
+  console.log("  Redis:", {
+    host: safe(process.env.REDIS_HOST || "127.0.0.1"),
+    port: safe(process.env.REDIS_PORT || "6379"),
+    hasPassword: !!process.env.REDIS_PASSWORD,
+  });
+  console.log("  MySQL:", {
+    host: safe(process.env.DB_HOST),
+    port: safe(process.env.DB_PORT),
+    name: safe(process.env.DB_NAME),
+    user: safe(process.env.DB_USER),
+    passSet: !!(process.env.DB_PASS || process.env.DB_PASSWORD),
+  });
+})();
+
+process.on("unhandledRejection", (err) => {
+  console.error("[WORKER] Unhandled rejection:", err);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[WORKER] Uncaught exception:", err);
+});
+
 // ------------------------------
 // AJV schema validator (SYNC init - CommonJS safe)
 // ------------------------------
@@ -64,15 +115,11 @@ if (VALIDATE_ENVELOPE) {
     const exists = fs.existsSync(schemaPath);
 
     if (!exists) {
-      console.warn(
-        `⚠️  VALIDATE_ENVELOPE=true but schema file not found at ${schemaPath}. Validation disabled.`
-      );
+      console.warn(`⚠️  VALIDATE_ENVELOPE=true but schema file not found at ${schemaPath}. Validation disabled.`);
     } else {
       const raw = fs.readFileSync(schemaPath, "utf8");
       if (!raw || !raw.trim()) {
-        console.warn(
-          `⚠️  VALIDATE_ENVELOPE=true but schema file is empty at ${schemaPath}. Validation disabled.`
-        );
+        console.warn(`⚠️  VALIDATE_ENVELOPE=true but schema file is empty at ${schemaPath}. Validation disabled.`);
       } else {
         const schemaJson = JSON.parse(raw);
 
@@ -80,14 +127,11 @@ if (VALIDATE_ENVELOPE) {
           allErrors: true,
           strict: false,
           allowUnionTypes: true,
-          // If you want formats to be *enforced*, keep addFormats(ajv) + install ajv-formats.
-          // If not installed, we catch below.
         });
 
         try {
           addFormats(ajv);
         } catch (fmtErr) {
-          // Still compile fine; formats will just be ignored.
           console.warn(`⚠️  ajv-formats not available (formats ignored): ${fmtErr.message}`);
         }
 
@@ -160,6 +204,23 @@ function makeRunId() {
 }
 
 // ------------------------------
+// Enhancement #2: Safe BullMQ jobId helpers
+//   - BullMQ rejects ":" in custom jobId (as you observed)
+// ------------------------------
+function safeJobId(raw) {
+  // allow only: letters, numbers, underscore, dash, dot
+  // (keep it boring to avoid BullMQ/Redis edge cases)
+  return String(raw)
+    .replace(/[:/\\\s]/g, "_")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .slice(0, 180);
+}
+
+function sha1Hex(str) {
+  return crypto.createHash("sha1").update(str).digest("hex");
+}
+
+// ------------------------------
 // Deterministic helpers
 // ------------------------------
 function stableSortJsonLd(value) {
@@ -180,7 +241,6 @@ function stableSortJsonLd(value) {
 }
 
 function selectPrimaryIndexDeterministic(blocks) {
-  // blocks: [{ json, provenance }, ...]
   if (!Array.isArray(blocks) || blocks.length === 0) return { index: null, type: null };
 
   const scored = blocks.map((b, i) => ({
@@ -201,18 +261,15 @@ function selectPrimaryIndexDeterministic(blocks) {
 function stableFingerprintView(envelope) {
   const e = JSON.parse(JSON.stringify(envelope || {}));
 
-  // Volatile envelope fields
   delete e["agentnet:captureDate"];
   delete e["agentnet:cgRunId"];
-  delete e["agentnet:cgManifestPath"]; // varies per run
+  delete e["agentnet:cgManifestPath"];
 
-  // Volatile provenance timestamps
   const prov = e?.["agentnet:asserted"]?.provenance;
   if (prov && typeof prov === "object") {
     delete prov.capturedAt;
   }
 
-  // Canonicalize asserted array/object
   const asserted = e?.["agentnet:asserted"]?.json;
   if (Array.isArray(asserted)) {
     const keyed = asserted.map((obj) => stableSortJsonLd(obj));
@@ -222,7 +279,6 @@ function stableFingerprintView(envelope) {
     e["agentnet:asserted"].json = stableSortJsonLd(asserted);
   }
 
-  // Canonicalize content (helps reduce fingerprint jitter)
   if (e["agentnet:content"] && typeof e["agentnet:content"] === "object") {
     e["agentnet:content"] = stableSortJsonLd(e["agentnet:content"]);
   }
@@ -252,6 +308,134 @@ function guardTinyPrice(content, report) {
 }
 
 // ------------------------------
+// Enhancement #3: Node reachability updates (best-effort)
+//   - Updates nodes.* if those columns exist
+//   - If schema lacks columns, we disable further attempts to avoid spam
+// ------------------------------
+let NODE_STATUS_UPDATES_DISABLED = false;
+
+async function tryUpdateNodeStatus(nodeId, status) {
+  if (!nodeId) return;
+  if (NODE_STATUS_UPDATES_DISABLED) return;
+
+  // status: { reachable, httpStatus, error, lastObservedAt, latencyMs, pageUrl }
+  const reachable = status?.reachable ? 1 : 0;
+  const httpStatus = status?.httpStatus ?? null;
+  const err = status?.error ? String(status.error).slice(0, 240) : null;
+  const observedAt = status?.lastObservedAt ? new Date(status.lastObservedAt) : new Date();
+  const latencyMs = Number.isFinite(status?.latencyMs) ? status.latencyMs : null;
+
+  // We intentionally do NOT require all columns; this will succeed only if columns exist.
+  // If your schema.sql does not include these columns yet, we'll see ER_BAD_FIELD_ERROR once and then stop trying.
+  const sql = `
+    UPDATE nodes
+    SET
+      last_observed_at = ?,
+      last_reachable = ?,
+      last_http_status = ?,
+      last_error = ?,
+      last_latency_ms = ?,
+      last_reachable_at = IF(?, ?, last_reachable_at),
+      last_unreachable_at = IF(?, ?, last_unreachable_at)
+    WHERE id = ?
+  `;
+
+  try {
+    await pool.query(sql, [
+      observedAt,
+      reachable,
+      httpStatus,
+      err,
+      latencyMs,
+      reachable === 1,
+      observedAt,
+      reachable === 0,
+      observedAt,
+      nodeId,
+    ]);
+  } catch (e) {
+    // If schema doesn't have these fields, stop attempting to update.
+    const msg = String(e?.message || e);
+    if (msg.includes("Unknown column") || msg.includes("ER_BAD_FIELD_ERROR")) {
+      NODE_STATUS_UPDATES_DISABLED = true;
+      console.warn("[WORKER] ⚠️ Node status columns not present on nodes table. Disabling node status updates.", msg);
+      return;
+    }
+    console.warn("[WORKER] ⚠️ Failed to update node status (non-fatal):", msg);
+  }
+}
+
+// ------------------------------
+// Enhancement #4: Navigation w/ HTTP->HTTPS fallback + status classification
+// ------------------------------
+function classifyNavError(errMsg) {
+  const m = String(errMsg || "").toLowerCase();
+
+  if (m.includes("timeout") || m.includes("timed out")) return "timeout";
+  if (m.includes("net::err_cert") || m.includes("certificate") || m.includes("ssl")) return "tls_error";
+  if (m.includes("net::err_connection") || m.includes("couldn't connect") || m.includes("refused")) return "unreachable";
+  if (m.includes("net::err_name_not_resolved") || m.includes("dns")) return "unreachable";
+
+  return "unreachable";
+}
+
+async function gotoWithProtocolFallback(page, inputUrl) {
+  const attempts = [];
+
+  async function attempt(url) {
+    const t0 = Date.now();
+    try {
+      const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+      const finalUrl = page.url();
+      const status = resp?.status?.() ?? null;
+
+      return {
+        ok: true,
+        attemptedUrl: url,
+        finalUrl,
+        finalScheme: (() => {
+          try {
+            return new URL(finalUrl).protocol.replace(":", "");
+          } catch {
+            return null;
+          }
+        })(),
+        httpStatus: status,
+        redirected: finalUrl && finalUrl !== url,
+        latencyMs: Date.now() - t0,
+        error: null,
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        attemptedUrl: url,
+        finalUrl: null,
+        finalScheme: null,
+        httpStatus: null,
+        redirected: false,
+        latencyMs: Date.now() - t0,
+        error: err?.message || String(err),
+      };
+    }
+  }
+
+  // 1) try as-is
+  const first = await attempt(inputUrl);
+  attempts.push(first);
+  if (first.ok) return { result: first, attempts };
+
+  // 2) try http→https if starts with http://
+  if (/^http:\/\//i.test(inputUrl)) {
+    const httpsUrl = inputUrl.replace(/^http:\/\//i, "https://");
+    const second = await attempt(httpsUrl);
+    attempts.push(second);
+    if (second.ok) return { result: second, attempts };
+  }
+
+  return { result: null, attempts };
+}
+
+// ------------------------------
 // Build envelope
 // ------------------------------
 function buildEnvelope({
@@ -259,7 +443,7 @@ function buildEnvelope({
   harvestedAt,
   cgRunId,
   manifestPath,
-  assertedJsonLd, // array|object|null
+  assertedJsonLd,
   assertedProvenance,
   jsonldRawScriptCount,
   jsonldParseErrors,
@@ -268,6 +452,8 @@ function buildEnvelope({
   structuredMarkup,
   assertedPrimaryIndex,
   assertedPrimaryType,
+  // site status signal on each capsule
+  siteStatus,
 }) {
   return {
     "@context": "https://agentnet.ai/context",
@@ -280,9 +466,7 @@ function buildEnvelope({
     "agentnet:source": url,
     "agentnet:captureDate": harvestedAt,
 
-    "agentnet:asserted": assertedJsonLd
-      ? { json: assertedJsonLd, provenance: assertedProvenance || null }
-      : null,
+    "agentnet:asserted": assertedJsonLd ? { json: assertedJsonLd, provenance: assertedProvenance || null } : null,
 
     "agentnet:content": enrichedContent || {},
 
@@ -300,8 +484,23 @@ function buildEnvelope({
       deterministic: CG_DETERMINISTIC,
       llmEnabled: EFFECTIVE_ENABLE_LLM,
 
-      // if validation fails, we add schemaErrors here
+      ...(siteStatus ? { siteStatus } : {}),
     },
+  };
+}
+
+// ------------------------------
+// Deterministic "status capsule" content helper
+// ------------------------------
+function buildStatusContent({ effectiveOrigin, attemptedUrl, finalUrl, observedAt, crawlStatus }) {
+  return {
+    "@context": "https://agentnet.ai/context",
+    "@type": "agentnet:SiteStatus",
+    "agentnet:site": effectiveOrigin,
+    "agentnet:attemptedUrl": attemptedUrl || null,
+    "agentnet:finalUrl": finalUrl || null,
+    "agentnet:observedAt": observedAt,
+    "agentnet:status": crawlStatus,
   };
 }
 
@@ -326,9 +525,22 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
     start: new Date().toISOString(),
     singlePageMode: SINGLE_PAGE,
     deterministic: CG_DETERMINISTIC,
+
+    // Aggregate site status for this run (latest)
+    siteStatus: {
+      lastObserved: null,
+      reachable: null,
+      httpStatus: null,
+      error: null,
+      latencyMs: null,
+      crawlStatus: null,
+      finalUrl: null,
+      finalScheme: null,
+    },
   };
 
   const allCapsulesForClassifier = [];
+  const capsuleReceipts = [];
 
   if (WRITE_SNAPSHOTS) await fs.ensureDir(SNAPSHOT_DIR);
 
@@ -353,23 +565,181 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
     await hostThrottle(url);
 
     const page = await ctx.newPage();
+
     try {
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+      const nav = await gotoWithProtocolFallback(page, url);
+      const harvestedAt = new Date().toISOString();
+
+      // ------------------------------
+      // If navigation totally failed -> INSERT STATUS CAPSULE and continue
+      // ------------------------------
+      if (!nav.result) {
+        const lastAttempt = nav.attempts[nav.attempts.length - 1] || {};
+        const crawlStatus = classifyNavError(lastAttempt.error);
+
+        const failSiteStatus = {
+          crawlStatus, // ok/redirected/unreachable/tls_error/timeout
+          reachable: false,
+          httpStatus: null,
+          attemptedUrl: url,
+          finalUrl: null,
+          finalScheme: null,
+          error: lastAttempt.error || "Navigation failed",
+          latencyMs: lastAttempt.latencyMs ?? null,
+          attempts: nav.attempts.map((a) => ({
+            attemptedUrl: a.attemptedUrl,
+            ok: a.ok,
+            httpStatus: a.httpStatus ?? null,
+            latencyMs: a.latencyMs ?? null,
+            error: a.error ?? null,
+          })),
+          observedAt: harvestedAt,
+        };
+
+        // Update aggregate + DB node status (best-effort)
+        siteStats.siteStatus = {
+          lastObserved: harvestedAt,
+          reachable: false,
+          httpStatus: null,
+          error: failSiteStatus.error,
+          latencyMs: failSiteStatus.latencyMs,
+          crawlStatus,
+          finalUrl: null,
+          finalScheme: null,
+        };
+
+        await tryUpdateNodeStatus(nodeId, {
+          reachable: false,
+          httpStatus: null,
+          error: failSiteStatus.error,
+          lastObservedAt: harvestedAt,
+          latencyMs: failSiteStatus.latencyMs,
+          pageUrl: url,
+        });
+
+        // Insert status capsule (so resolver can return provenance even on failure)
+        const statusContent = buildStatusContent({
+          effectiveOrigin: origin,
+          attemptedUrl: url,
+          finalUrl: null,
+          observedAt: harvestedAt,
+          crawlStatus,
+        });
+
+        const envelope = buildEnvelope({
+          url, // source remains attempted url for failure capsule
+          harvestedAt,
+          cgRunId,
+          manifestPath,
+          assertedJsonLd: null,
+          assertedProvenance: null,
+          jsonldRawScriptCount: 0,
+          jsonldParseErrors: 0,
+          enrichedContent: statusContent,
+          inferredMeta: {},
+          structuredMarkup: "none",
+          assertedPrimaryIndex: null,
+          assertedPrimaryType: null,
+          siteStatus: failSiteStatus,
+        });
+
+        // Deterministic fingerprint still includes siteStatus, so this is a real provenance event
+        const fingerprint = fp(CG_DETERMINISTIC ? stableFingerprintView(envelope) : envelope);
+
+        // Status capsule should *not* be ok
+        const status = "needs_review";
+
+        const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status);
+
+        capsuleReceipts.push({
+          pageUrl: url,
+          capsuleId: ins?.capsuleId ?? null,
+          fingerprint,
+          status,
+          assertedPrimaryType: null,
+          structuredMarkup: "none",
+          httpStatus: null,
+          latencyMs: failSiteStatus.latencyMs,
+          crawlStatus,
+          finalUrl: null,
+          finalScheme: null,
+        });
+
+        siteStats.capsules += 1;
+        siteStats.pages += 1;
+        siteStats.rejected += 1;
+        siteStats.errors += 1;
+
+        console.warn(`⚠️ Status capsule inserted for unreachable site ${url} crawlStatus=${crawlStatus}`);
+        continue; // next page/site
+      }
+
+      // ------------------------------
+      // Navigation succeeded
+      // ------------------------------
+      const navRes = nav.result;
+      const finalUrl = navRes.finalUrl || page.url();
+      const finalScheme = navRes.finalScheme;
+      const httpStatus = navRes.httpStatus;
+      const crawlStatus = navRes.redirected ? "redirected" : "ok";
+
       await page.waitForTimeout(800);
 
-      const harvestedAt = new Date().toISOString();
       const html = await page.content();
       const text = await page.evaluate(() => document.body?.innerText || "");
 
-      // Extract asserted JSON-LD
-      const jsonld = extractJsonLd(html, url, { capturedAt: harvestedAt });
+      // Use finalUrl for capsule identity (important if http->https or other redirects)
+      const effectiveUrl = normalizeUrl(finalUrl);
+
+      const pageSiteStatus = {
+        crawlStatus,
+        reachable: true,
+        httpStatus,
+        attemptedUrl: navRes.attemptedUrl,
+        finalUrl,
+        finalScheme,
+        error: null,
+        latencyMs: navRes.latencyMs ?? null,
+        attempts: nav.attempts.map((a) => ({
+          attemptedUrl: a.attemptedUrl,
+          ok: a.ok,
+          httpStatus: a.httpStatus ?? null,
+          latencyMs: a.latencyMs ?? null,
+          error: a.error ?? null,
+        })),
+        observedAt: harvestedAt,
+      };
+
+      // Update aggregate + DB node status (best-effort)
+      siteStats.siteStatus = {
+        lastObserved: harvestedAt,
+        reachable: true,
+        httpStatus,
+        error: null,
+        latencyMs: navRes.latencyMs ?? null,
+        crawlStatus,
+        finalUrl,
+        finalScheme,
+      };
+
+      await tryUpdateNodeStatus(nodeId, {
+        reachable: true,
+        httpStatus,
+        error: null,
+        lastObservedAt: harvestedAt,
+        latencyMs: navRes.latencyMs ?? null,
+        pageUrl: effectiveUrl,
+      });
+
+      // Extract asserted JSON-LD (use effectiveUrl)
+      const jsonld = extractJsonLd(html, effectiveUrl, { capturedAt: harvestedAt });
       const rawCount = Number(jsonld?.rawCount || 0);
       const blocksRaw = Array.isArray(jsonld?.blocks) ? jsonld.blocks : [];
       const parseErrors = Array.isArray(jsonld?.parseErrors) ? jsonld.parseErrors : [];
       const found = Boolean(jsonld?.found);
 
       if (rawCount > 0 && !found) {
-        console.warn(`⚠️ JSON-LD scripts present but unparsable on ${url}:`, parseErrors);
+        console.warn(`⚠️ JSON-LD scripts present but unparsable on ${effectiveUrl}:`, parseErrors);
       }
 
       // Build single asserted-array
@@ -381,7 +751,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
       if (found && blocksRaw.length > 0) {
         const blocks = blocksRaw.map((b) => {
           if (b && typeof b === "object" && "json" in b) return b;
-          return { json: b, provenance: { evidenceType: "jsonld-script", url, capturedAt: harvestedAt } };
+          return { json: b, provenance: { evidenceType: "jsonld-script", url: effectiveUrl, capturedAt: harvestedAt } };
         });
 
         const cleanedBlocks = blocks.map((b) => ({
@@ -392,7 +762,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         assertedJson = cleanedBlocks.map((b) => b.json);
         assertedProvenance = {
           evidenceType: "jsonld-script",
-          url,
+          url: effectiveUrl,
           capturedAt: harvestedAt,
         };
 
@@ -412,7 +782,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
 
       try {
         const out = await inferCapsule({
-          url,
+          url: effectiveUrl,
           html,
           text,
           extractedCapsule:
@@ -422,7 +792,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         enrichedContent = out.capsule;
         inferredMeta = out.inferred;
       } catch (infErr) {
-        console.warn(`⚠️ Inference failed on ${url}: ${infErr.message}`);
+        console.warn(`⚠️ Inference failed on ${effectiveUrl}: ${infErr.message}`);
         siteStats.errors += 1;
 
         enrichedContent = {
@@ -436,9 +806,9 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         inferredMeta = enrichedContent["agentnet:inferred"] || {};
       }
 
-      // Envelope
+      // Envelope (use effectiveUrl for agentnet:source)
       const envelope = buildEnvelope({
-        url,
+        url: effectiveUrl,
         harvestedAt,
         cgRunId,
         manifestPath,
@@ -451,6 +821,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         structuredMarkup: found ? "jsonld" : "none",
         assertedPrimaryIndex,
         assertedPrimaryType,
+        siteStatus: pageSiteStatus,
       });
 
       // price guardrail
@@ -470,7 +841,22 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         }
       }
 
-      await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status);
+      // Insert capsule
+      const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status);
+
+      capsuleReceipts.push({
+        pageUrl: effectiveUrl,
+        capsuleId: ins?.capsuleId ?? null,
+        fingerprint,
+        status,
+        assertedPrimaryType: assertedPrimaryType ?? null,
+        structuredMarkup: found ? "jsonld" : "none",
+        httpStatus,
+        latencyMs: navRes.latencyMs ?? null,
+        crawlStatus,
+        finalUrl,
+        finalScheme,
+      });
 
       siteStats.capsules += 1;
       siteStats.pages += 1;
@@ -483,12 +869,12 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
       allCapsulesForClassifier.push({ "agentnet:content": envelope["agentnet:content"] });
 
       if (WRITE_SNAPSHOTS) {
-        const name = snapshotName(url);
+        const name = snapshotName(effectiveUrl);
         await fs.writeFile(`${SNAPSHOT_DIR}/${name}`, html);
       }
 
       console.log(
-        `✅ 1 capsule processed for ${url} (JSON-LD scripts: ${rawCount}, parsed objects: ${blocksRaw.length})`
+        `✅ 1 capsule processed for ${effectiveUrl} (HTTP: ${httpStatus ?? "?"}, ${navRes.latencyMs ?? "?"}ms, JSON-LD scripts: ${rawCount}, parsed objects: ${blocksRaw.length})`
       );
 
       // Discover same-origin links (disabled in SINGLE_PAGE mode)
@@ -510,7 +896,96 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         }
       }
     } catch (e) {
-      console.error(`❌ Error crawling ${url}: ${e.message}`);
+      const harvestedAt = new Date().toISOString();
+      const errMsg = String(e?.message || e);
+      const crawlStatus = classifyNavError(errMsg);
+
+      const failSiteStatus = {
+        crawlStatus,
+        reachable: false,
+        httpStatus: null,
+        attemptedUrl: url,
+        finalUrl: null,
+        finalScheme: null,
+        error: errMsg,
+        latencyMs: null,
+        attempts: [],
+        observedAt: harvestedAt,
+      };
+
+      siteStats.siteStatus = {
+        lastObserved: harvestedAt,
+        reachable: false,
+        httpStatus: null,
+        error: errMsg,
+        latencyMs: null,
+        crawlStatus,
+        finalUrl: null,
+        finalScheme: null,
+      };
+
+      await tryUpdateNodeStatus(nodeId, {
+        reachable: false,
+        httpStatus: null,
+        error: errMsg,
+        lastObservedAt: harvestedAt,
+        latencyMs: null,
+        pageUrl: url,
+      });
+
+      // Insert a status capsule even on unexpected errors
+      try {
+        const statusContent = buildStatusContent({
+          effectiveOrigin: origin,
+          attemptedUrl: url,
+          finalUrl: null,
+          observedAt: harvestedAt,
+          crawlStatus,
+        });
+
+        const envelope = buildEnvelope({
+          url,
+          harvestedAt,
+          cgRunId,
+          manifestPath,
+          assertedJsonLd: null,
+          assertedProvenance: null,
+          jsonldRawScriptCount: 0,
+          jsonldParseErrors: 0,
+          enrichedContent: statusContent,
+          inferredMeta: {},
+          structuredMarkup: "none",
+          assertedPrimaryIndex: null,
+          assertedPrimaryType: null,
+          siteStatus: failSiteStatus,
+        });
+
+        const fingerprint = fp(CG_DETERMINISTIC ? stableFingerprintView(envelope) : envelope);
+        const status = "needs_review";
+        const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status);
+
+        capsuleReceipts.push({
+          pageUrl: url,
+          capsuleId: ins?.capsuleId ?? null,
+          fingerprint,
+          status,
+          assertedPrimaryType: null,
+          structuredMarkup: "none",
+          httpStatus: null,
+          latencyMs: null,
+          crawlStatus,
+          finalUrl: null,
+          finalScheme: null,
+        });
+
+        siteStats.capsules += 1;
+        siteStats.pages += 1;
+        siteStats.rejected += 1;
+      } catch (inner) {
+        console.warn(`[WORKER] ⚠️ Failed to insert status capsule for error on ${url}: ${inner?.message || inner}`);
+      }
+
+      console.error(`❌ Error crawling ${url}: ${errMsg}`);
       siteStats.errors += 1;
     } finally {
       await page.close();
@@ -532,7 +1007,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
   await appendLog(siteStats);
   console.log(`🌐 Crawl complete for ${origin}: ${visited.size} pages processed.`);
 
-  return siteStats;
+  return { ...siteStats, capsuleReceipts };
 }
 
 // ------------------------------
@@ -557,6 +1032,9 @@ async function writeRunManifest({ runId, startedAt, finishedAt, seed, settings, 
     manifestPath,
     nodeCategory: node?.nodeCategory || null,
 
+    // include the last known site status in the run manifest
+    siteStatus: summary?.siteStatus || null,
+
     // ✅ CG Output Contract
     "agentnet:cgOutput": {
       capsulesInserted: summary?.inserted ?? 0,
@@ -572,7 +1050,7 @@ async function writeRunManifest({ runId, startedAt, finishedAt, seed, settings, 
 // ------------------------------
 // BullMQ Worker
 // ------------------------------
-new Worker(
+const worker = new Worker(
   queueName,
   async (job) => {
     const { url, owner_slug } = job.data;
@@ -596,6 +1074,9 @@ new Worker(
       WRITE_SNAPSHOTS,
       USER_AGENT: UA,
       CONCURRENCY,
+      ENABLE_INQUIRY_ENQUEUE,
+      inquiryQueueName,
+      inquiryJobName: INQUIRY_JOB_NAME,
     };
 
     const seed = { owner_slug, url };
@@ -616,12 +1097,66 @@ new Worker(
         manifestPath,
       });
 
+      // ------------------------------
+      // Enqueue resolver inquiry job (consumed by ant-inquiry-generator)
+      // ------------------------------
+      if (ENABLE_INQUIRY_ENQUEUE) {
+        try {
+          const receipts = stats.capsuleReceipts || [];
+          const payload = {
+            runId,
+            owner_slug,
+            nodeId,
+            nodeOrigin: new URL(url).origin,
+            capsules: receipts.map((c) => ({
+              capsuleId: c.capsuleId,
+              fingerprint: c.fingerprint,
+              status: c.status,
+            })),
+          };
+
+          // Dedupe controls:
+          // - default: NO dedupe (unique per run)
+          // - if ENABLE_INQUIRY_DEDUPE=true: dedupe by nodeId + capsules-fingerprint-hash
+          const wantDedupe = (process.env.ENABLE_INQUIRY_DEDUPE ?? "false").toLowerCase() === "true";
+
+          const capsuleHash = sha1Hex(JSON.stringify(payload.capsules || []));
+          const rawJobId = wantDedupe ? `inquiry_${nodeId}_${capsuleHash}` : `inquiry_${runId}`;
+
+          const jobId = safeJobId(rawJobId);
+
+          console.log(`[WORKER] 📩 enqueue inquiry -> queue=${inquiryQueueName} jobId=${jobId}`, {
+            runId,
+            nodeId,
+            capsules: payload.capsules.length,
+            wantDedupe,
+          });
+
+          await inquiryQueue.add(INQUIRY_JOB_NAME, payload, {
+            jobId,
+            removeOnComplete: true,
+            removeOnFail: false,
+          });
+
+          console.log(`[WORKER] 📨 Inquiry job enqueued ok jobId=${jobId}`);
+        } catch (e) {
+          console.warn(`[WORKER] ⚠️ Failed to enqueue inquiry job for ${url}: ${e.message}`);
+        }
+      } else {
+        console.log("[WORKER] ℹ️ Inquiry enqueue disabled (inquiryQueue not available or ENABLE_INQUIRY_ENQUEUE=false).");
+      }
+
       await browser.close();
 
+      // Manifest-friendly summary receipt
       capsuleReceipts.push({
         url,
         finishedAt: stats.end || new Date().toISOString(),
-        insertedStatus: "see-db",
+        pages: stats.pages,
+        capsules: stats.capsules,
+        inserted: stats.inserted,
+        rejected: stats.rejected,
+        schemaErrors: stats.schemaErrors,
       });
 
       const finishedAt = new Date().toISOString();
@@ -634,6 +1169,9 @@ new Worker(
         inserted: stats.inserted,
         rejected: stats.rejected,
         schemaErrors: stats.schemaErrors,
+
+        // propagate site status into manifest
+        siteStatus: stats.siteStatus || null,
       };
 
       const node = { nodeId, nodeCategory: stats.nodeCategory || null };
@@ -650,16 +1188,19 @@ new Worker(
         errors,
       });
 
-      console.log(`🏁 ${stats.pages} pages / ${stats.capsules} capsules (${stats.inferred} inferred) for ${url}`);
-      console.log(`🧾 Run manifest written: ${written}`);
+      console.log(`[WORKER] 🏁 ${stats.pages} pages / ${stats.capsules} capsules (${stats.inferred} inferred) for ${url}`);
+      console.log(`[WORKER] 🧾 Run manifest written: ${written}`);
 
       return { ok: true, runId, manifestPath: written };
     } catch (e) {
-      await browser.close();
-      console.error(`💥 Fatal error on ${url}: ${e.message}`);
+      try {
+        await browser.close();
+      } catch {
+        // ignore
+      }
+      console.error(`[WORKER] 💥 Fatal error on ${url}: ${e.message}`);
 
       errors.push({ site: url, error: e.message, time: new Date().toISOString() });
-
       await appendLog({ site: url, error: e.message, time: new Date().toISOString() });
 
       throw e;
@@ -667,3 +1208,14 @@ new Worker(
   },
   { connection, concurrency: CONCURRENCY }
 );
+
+// ------------------------------
+// Worker lifecycle logging
+// ------------------------------
+worker.on("ready", () => console.log(`[WORKER] ✅ BullMQ worker ready. queue=${queueName} concurrency=${CONCURRENCY}`));
+worker.on("active", (job) => console.log(`[WORKER] ▶️  active job id=${job.id} name=${job.name}`));
+worker.on("completed", (job, res) => console.log(`[WORKER] ✅ completed job id=${job.id} name=${job.name}`, res || ""));
+worker.on("failed", (job, err) =>
+  console.warn(`[WORKER] ❌ failed job id=${job?.id} name=${job?.name} err=${err?.message}`)
+);
+worker.on("error", (err) => console.error("[WORKER] ❌ worker error:", err));

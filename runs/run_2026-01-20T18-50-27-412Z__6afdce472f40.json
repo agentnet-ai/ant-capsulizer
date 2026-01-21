@@ -1,0 +1,59 @@
+{
+  "runId": "run_2026-01-20T18-50-27-412Z__6afdce472f40",
+  "startedAt": "2026-01-20T18:50:27.412Z",
+  "finishedAt": "2026-01-20T18:50:57.552Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "atautoglassandwindowtint-com",
+    "url": "https://atautoglassandwindowtint.com"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry"
+  },
+  "node": {
+    "nodeId": 114,
+    "nodeCategory": "landing"
+  },
+  "summary": {
+    "pages": 0,
+    "capsules": 0,
+    "inferred": 0,
+    "errors": 1,
+    "inserted": 0,
+    "rejected": 0,
+    "schemaErrors": 0
+  },
+  "capsules": [
+    {
+      "url": "https://atautoglassandwindowtint.com",
+      "finishedAt": "2026-01-20T18:50:57.539Z",
+      "pages": 0,
+      "capsules": 0,
+      "inserted": 0,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-20T18-50-27-412Z__6afdce472f40.json",
+  "nodeCategory": "landing",
+  "agentnet:cgOutput": {
+    "capsulesInserted": 0,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}
