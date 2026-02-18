@@ -94,6 +94,7 @@ const INQUIRY_JOB_NAME = process.env.INQUIRY_JOB_NAME || "inquire";
     user: safe(process.env.DB_USER),
     passSet: !!(process.env.DB_PASS || process.env.DB_PASSWORD),
   });
+  console.log("  Registrar:", safe(process.env.REGISTRAR_BASE_URL || "http://localhost:4002"));
 })();
 
 process.on("unhandledRejection", (err) => {
@@ -454,6 +455,7 @@ function buildEnvelope({
   assertedPrimaryType,
   // site status signal on each capsule
   siteStatus,
+  registrarNodeId,
 }) {
   return {
     "@context": "https://agentnet.ai/context",
@@ -464,6 +466,7 @@ function buildEnvelope({
     ...(manifestPath ? { "agentnet:cgManifestPath": manifestPath } : {}),
 
     "agentnet:source": url,
+    ...(registrarNodeId ? { "agentnet:registrarNodeId": registrarNodeId } : {}),
     "agentnet:captureDate": harvestedAt,
 
     "agentnet:asserted": assertedJsonLd ? { json: assertedJsonLd, provenance: assertedProvenance || null } : null,
@@ -641,6 +644,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
           assertedPrimaryIndex: null,
           assertedPrimaryType: null,
           siteStatus: failSiteStatus,
+          registrarNodeId: nodeId,
         });
 
         // Deterministic fingerprint still includes siteStatus, so this is a real provenance event
@@ -822,6 +826,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         assertedPrimaryIndex,
         assertedPrimaryType,
         siteStatus: pageSiteStatus,
+        registrarNodeId: nodeId,
       });
 
       // price guardrail
@@ -958,6 +963,7 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
           assertedPrimaryIndex: null,
           assertedPrimaryType: null,
           siteStatus: failSiteStatus,
+          registrarNodeId: nodeId,
         });
 
         const fingerprint = fp(CG_DETERMINISTIC ? stableFingerprintView(envelope) : envelope);
@@ -1085,6 +1091,7 @@ const worker = new Worker(
 
     try {
       const nodeId = await upsertNode(owner_slug, url);
+      console.log(`[WORKER] nodeId=${nodeId} for ${url}`);
 
       // Capsules will write this into the envelope immediately
       const manifestPath = `${RUNS_DIR}/${runId}.json`;

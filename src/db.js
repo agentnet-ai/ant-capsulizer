@@ -4,6 +4,7 @@
 // Safe for repeated ANT-Capsulizer runs
 // ------------------------------------------
 const mysql = require("mysql2/promise");
+const { issueNode } = require("./clients/registrarClient");
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -16,12 +17,11 @@ const pool = mysql.createPool({
 
 // -----------------------------------------------------
 // Upsert or fetch existing node (owner_slug + domain)
+// nodes.id is a CHAR(36) UUID issued by ant-registrar
 // -----------------------------------------------------
 async function upsertNode(owner_slug, source_url) {
   if (!source_url) throw new Error("upsertNode: source_url is required");
 
-  // Canonical identity for the node (stable)
-  // This is what your nodes.node_uri UNIQUE key should represent.
   let node_uri;
   let domain = null;
 
@@ -33,30 +33,70 @@ async function upsertNode(owner_slug, source_url) {
     throw new Error(`upsertNode: invalid URL source_url=${source_url}`);
   }
 
-  // Insert if new; otherwise update metadata on existing row.
-  // We use node_uri as the unique key.
-  const [result] = await pool.query(
-    `
-    INSERT INTO nodes (node_uri, source_url, domain, owner_slug)
-    VALUES (?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      source_url = VALUES(source_url),
-      domain = VALUES(domain),
-      owner_slug = VALUES(owner_slug),
-      updated_at = CURRENT_TIMESTAMP
-    `,
-    [node_uri, source_url, domain, owner_slug || null]
+  // Check if node already exists by node_uri
+  const [rows] = await pool.query(
+    `SELECT id FROM nodes WHERE node_uri = ? LIMIT 1`,
+    [node_uri]
   );
 
-  // If inserted, result.insertId is the new id.
-  if (result.insertId) return result.insertId;
+  if (rows && rows.length) {
+    // Refresh metadata on existing row
+    await pool.query(
+      `UPDATE nodes SET source_url = ?, domain = ?, owner_slug = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [source_url, domain, owner_slug || null, rows[0].id]
+    );
+    return rows[0].id;
+  }
 
-  // If updated (duplicate), fetch the existing row's id by node_uri.
-  const [rows] = await pool.query(`SELECT id FROM nodes WHERE node_uri = ? LIMIT 1`, [node_uri]);
-  if (!rows || !rows.length) throw new Error(`upsertNode: upsert succeeded but id not found for node_uri=${node_uri}`);
-  return rows[0].id;
+  // Node doesn't exist — issue a UUID from the Registrar
+  const result = await issueNode();
+  const nodeId = result.nodeId;
+  if (!nodeId) {
+    throw new Error(
+      `upsertNode: Registrar issueNode() did not return a nodeId. Response: ${JSON.stringify(result)}`
+    );
+  }
+
+  await pool.query(
+    `INSERT INTO nodes (id, node_uri, source_url, domain, owner_slug) VALUES (?, ?, ?, ?, ?)`,
+    [nodeId, node_uri, source_url, domain, owner_slug || null]
+  );
+
+  return nodeId;
 }
 
+
+// -----------------------------------------------------
+// Generic node ensure — accepts node_uri directly
+// (for non-URL URIs like agentnet-doc:path/to/file.md)
+// -----------------------------------------------------
+async function ensureNode(node_uri, meta = {}) {
+  if (!node_uri) throw new Error("ensureNode: node_uri is required");
+
+  const [rows] = await pool.query(
+    `SELECT id FROM nodes WHERE node_uri = ? LIMIT 1`,
+    [node_uri]
+  );
+
+  if (rows && rows.length) {
+    return rows[0].id;
+  }
+
+  const result = await issueNode();
+  const nodeId = result.nodeId;
+  if (!nodeId) {
+    throw new Error(
+      `ensureNode: Registrar issueNode() did not return a nodeId. Response: ${JSON.stringify(result)}`
+    );
+  }
+
+  await pool.query(
+    `INSERT INTO nodes (id, node_uri, source_url, domain, owner_slug) VALUES (?, ?, ?, ?, ?)`,
+    [nodeId, node_uri, meta.source_url || null, meta.domain || null, meta.owner_slug || null]
+  );
+
+  return nodeId;
+}
 
 // -----------------------------------------------------
 // Insert or overwrite capsule (unique by capsule_uri)
@@ -161,6 +201,7 @@ async function query(sql, params = []) {
 module.exports = {
   pool,
   upsertNode,
+  ensureNode,
   insertCapsule,
   query,
 };

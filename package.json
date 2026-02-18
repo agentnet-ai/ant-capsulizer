@@ -11,6 +11,7 @@
     "schedule": "node src/tools/scheduleUpdates.js",
     "seed": "node src/seed.js",
     "worker": "node src/worker.js",
+    "capsulize:repo": "node src/tools/capsulizeRepo.js",
     "dev:seed": "concurrently -n \"WORKER,SEED\" -c \"cyan,yellow\" \"node src/worker.js\" \"bash -c 'sleep 3 && node src/seed.js'\""
   },
   "keywords": [],
@@ -26,6 +27,7 @@
     "fast-sha256": "^1.3.0",
     "fs-extra": "^11.3.2",
     "ioredis": "^5.8.1",
+    "mammoth": "^1.11.0",
     "mysql2": "^3.15.2",
     "playwright": "^1.56.0"
   },
