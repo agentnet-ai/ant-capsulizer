@@ -1,0 +1,80 @@
+{
+  "runId": "run_2026-01-22T19-17-58-784Z__7241f3a66d8f",
+  "startedAt": "2026-01-22T19:17:58.784Z",
+  "finishedAt": "2026-01-22T19:18:28.948Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "ctasurveying-biz",
+    "url": "https://ctasurveying.biz"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry",
+    "inquiryJobName": "inquire"
+  },
+  "node": {
+    "nodeId": 83,
+    "nodeCategory": "landing"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 0,
+    "errors": 1,
+    "inserted": 0,
+    "rejected": 1,
+    "schemaErrors": 0,
+    "siteStatus": {
+      "lastObserved": "2026-01-22T19:18:28.904Z",
+      "reachable": false,
+      "httpStatus": null,
+      "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://ctasurveying.biz/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "latencyMs": 30001,
+      "crawlStatus": "timeout",
+      "finalUrl": null,
+      "finalScheme": null
+    }
+  },
+  "capsules": [
+    {
+      "url": "https://ctasurveying.biz",
+      "finishedAt": "2026-01-22T19:18:28.919Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 0,
+      "rejected": 1,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-22T19-17-58-784Z__7241f3a66d8f.json",
+  "nodeCategory": "landing",
+  "siteStatus": {
+    "lastObserved": "2026-01-22T19:18:28.904Z",
+    "reachable": false,
+    "httpStatus": null,
+    "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://ctasurveying.biz/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+    "latencyMs": 30001,
+    "crawlStatus": "timeout",
+    "finalUrl": null,
+    "finalScheme": null
+  },
+  "agentnet:cgOutput": {
+    "capsulesInserted": 0,
+    "capsulesRejected": 1,
+    "schemaErrorsCount": 0
+  }
+}

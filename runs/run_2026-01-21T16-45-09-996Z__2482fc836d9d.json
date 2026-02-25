@@ -1,0 +1,80 @@
+{
+  "runId": "run_2026-01-21T16-45-09-996Z__2482fc836d9d",
+  "startedAt": "2026-01-21T16:45:09.996Z",
+  "finishedAt": "2026-01-21T16:45:12.759Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "hopestrengthandcure-com",
+    "url": "https://hopestrengthandcure.com"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry",
+    "inquiryJobName": "inquire"
+  },
+  "node": {
+    "nodeId": 219,
+    "nodeCategory": "corporate"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 1,
+    "errors": 0,
+    "inserted": 1,
+    "rejected": 0,
+    "schemaErrors": 0,
+    "siteStatus": {
+      "lastObserved": "2026-01-21T16:45:11.920Z",
+      "reachable": true,
+      "httpStatus": 200,
+      "error": null,
+      "latencyMs": 1811,
+      "crawlStatus": "ok",
+      "finalUrl": "https://hopestrengthandcure.com/",
+      "finalScheme": "https"
+    }
+  },
+  "capsules": [
+    {
+      "url": "https://hopestrengthandcure.com",
+      "finishedAt": "2026-01-21T16:45:12.746Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 1,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-21T16-45-09-996Z__2482fc836d9d.json",
+  "nodeCategory": "corporate",
+  "siteStatus": {
+    "lastObserved": "2026-01-21T16:45:11.920Z",
+    "reachable": true,
+    "httpStatus": 200,
+    "error": null,
+    "latencyMs": 1811,
+    "crawlStatus": "ok",
+    "finalUrl": "https://hopestrengthandcure.com/",
+    "finalScheme": "https"
+  },
+  "agentnet:cgOutput": {
+    "capsulesInserted": 1,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

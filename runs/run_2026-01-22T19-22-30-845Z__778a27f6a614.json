@@ -1,0 +1,80 @@
+{
+  "runId": "run_2026-01-22T19-22-30-845Z__778a27f6a614",
+  "startedAt": "2026-01-22T19:22:30.845Z",
+  "finishedAt": "2026-01-22T19:23:00.999Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "usslidefastener-org",
+    "url": "https://usslidefastener.org"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry",
+    "inquiryJobName": "inquire"
+  },
+  "node": {
+    "nodeId": 212,
+    "nodeCategory": "landing"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 0,
+    "errors": 1,
+    "inserted": 0,
+    "rejected": 1,
+    "schemaErrors": 0,
+    "siteStatus": {
+      "lastObserved": "2026-01-22T19:23:00.965Z",
+      "reachable": false,
+      "httpStatus": null,
+      "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://usslidefastener.org/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "latencyMs": 30002,
+      "crawlStatus": "timeout",
+      "finalUrl": null,
+      "finalScheme": null
+    }
+  },
+  "capsules": [
+    {
+      "url": "https://usslidefastener.org",
+      "finishedAt": "2026-01-22T19:23:00.978Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 0,
+      "rejected": 1,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-22T19-22-30-845Z__778a27f6a614.json",
+  "nodeCategory": "landing",
+  "siteStatus": {
+    "lastObserved": "2026-01-22T19:23:00.965Z",
+    "reachable": false,
+    "httpStatus": null,
+    "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://usslidefastener.org/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+    "latencyMs": 30002,
+    "crawlStatus": "timeout",
+    "finalUrl": null,
+    "finalScheme": null
+  },
+  "agentnet:cgOutput": {
+    "capsulesInserted": 0,
+    "capsulesRejected": 1,
+    "schemaErrorsCount": 0
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "runId": "run_2026-01-21T16-37-57-483Z__1c49d5a9a1eb",
+  "startedAt": "2026-01-21T16:37:57.483Z",
+  "finishedAt": "2026-01-21T16:37:59.043Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "bandbtruckservice-net",
+    "url": "https://bandbtruckservice.net"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry",
+    "inquiryJobName": "inquire"
+  },
+  "node": {
+    "nodeId": 22,
+    "nodeCategory": "corporate"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 1,
+    "errors": 0,
+    "inserted": 1,
+    "rejected": 0,
+    "schemaErrors": 0,
+    "siteStatus": {
+      "lastObserved": "2026-01-21T16:37:58.202Z",
+      "reachable": true,
+      "httpStatus": 200,
+      "error": null,
+      "latencyMs": 600,
+      "crawlStatus": "ok",
+      "finalUrl": "https://bandbtruckservice.net/",
+      "finalScheme": "https"
+    }
+  },
+  "capsules": [
+    {
+      "url": "https://bandbtruckservice.net",
+      "finishedAt": "2026-01-21T16:37:59.030Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 1,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-21T16-37-57-483Z__1c49d5a9a1eb.json",
+  "nodeCategory": "corporate",
+  "siteStatus": {
+    "lastObserved": "2026-01-21T16:37:58.202Z",
+    "reachable": true,
+    "httpStatus": 200,
+    "error": null,
+    "latencyMs": 600,
+    "crawlStatus": "ok",
+    "finalUrl": "https://bandbtruckservice.net/",
+    "finalScheme": "https"
+  },
+  "agentnet:cgOutput": {
+    "capsulesInserted": 1,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

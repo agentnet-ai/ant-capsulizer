@@ -1,0 +1,80 @@
+{
+  "runId": "run_2026-01-22T19-18-42-313Z__276a40e145c0",
+  "startedAt": "2026-01-22T19:18:42.313Z",
+  "finishedAt": "2026-01-22T19:18:44.766Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "aaamobilestorageut-com",
+    "url": "https://aaamobilestorageut.com"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry",
+    "inquiryJobName": "inquire"
+  },
+  "node": {
+    "nodeId": 102,
+    "nodeCategory": "ecommerce"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 1,
+    "errors": 0,
+    "inserted": 1,
+    "rejected": 0,
+    "schemaErrors": 0,
+    "siteStatus": {
+      "lastObserved": "2026-01-22T19:18:43.936Z",
+      "reachable": true,
+      "httpStatus": 200,
+      "error": null,
+      "latencyMs": 1506,
+      "crawlStatus": "ok",
+      "finalUrl": "https://aaamobilestorageut.com/",
+      "finalScheme": "https"
+    }
+  },
+  "capsules": [
+    {
+      "url": "https://aaamobilestorageut.com",
+      "finishedAt": "2026-01-22T19:18:44.753Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 1,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-22T19-18-42-313Z__276a40e145c0.json",
+  "nodeCategory": "ecommerce",
+  "siteStatus": {
+    "lastObserved": "2026-01-22T19:18:43.936Z",
+    "reachable": true,
+    "httpStatus": 200,
+    "error": null,
+    "latencyMs": 1506,
+    "crawlStatus": "ok",
+    "finalUrl": "https://aaamobilestorageut.com/",
+    "finalScheme": "https"
+  },
+  "agentnet:cgOutput": {
+    "capsulesInserted": 1,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

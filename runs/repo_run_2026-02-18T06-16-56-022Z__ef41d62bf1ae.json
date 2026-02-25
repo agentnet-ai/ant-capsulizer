@@ -1,0 +1,88 @@
+{
+  "runId": "repo_run_2026-02-18T06-16-56-022Z__ef41d62bf1ae",
+  "startedAt": "2026-02-18T06:16:56.023Z",
+  "finishedAt": "2026-02-18T06:16:56.130Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "mode": "repo",
+  "repoPath": "/Users/stevenrouse/projects/ant/agentnet",
+  "summary": {
+    "matched": 12,
+    "inserted": 12,
+    "errors": 0
+  },
+  "capsules": [
+    {
+      "relativePath": "CODE_OF_CONDUCT.md",
+      "nodeId": "4f70872b-de88-4495-95d5-e6c3a1ac5d0d",
+      "fingerprint": "sha256:a6df5ca1bc297333b1dd4344aa82b9dd623e5146a5513538fe9f512fd15ba83d",
+      "status": "ok"
+    },
+    {
+      "relativePath": "CONTRIBUTING.md",
+      "nodeId": "1e9fec36-cad7-4f2d-8743-3600288f0989",
+      "fingerprint": "sha256:ec400602fbb4b5efadfbb6f23aaf204fa068c4111af75d7d4f1937a51a0a384a",
+      "status": "ok"
+    },
+    {
+      "relativePath": "CONTRIBUTOR-QUICK-START.md",
+      "nodeId": "64a2603c-6d8c-44b2-ad56-68029a455913",
+      "fingerprint": "sha256:9e7cb316a24ea67f2875e86f04969a5b48c3ca5db745d3f048b44effc6d6a5b8",
+      "status": "ok"
+    },
+    {
+      "relativePath": "GOVERNANCE.md",
+      "nodeId": "feb1060f-e932-448a-ad5f-1ec8677472d2",
+      "fingerprint": "sha256:85739ba03253c2d093b056f9ac6d7235d80c47acf99012ee3adeb8bd0155dbba",
+      "status": "ok"
+    },
+    {
+      "relativePath": "README.md",
+      "nodeId": "5279f781-6add-477d-8bf6-740572e99a68",
+      "fingerprint": "sha256:89fdfb9303d96fbf19b9a4a680cb3f73f5e2bc80f5e2b0cb8f3591139c69d447",
+      "status": "ok"
+    },
+    {
+      "relativePath": "RFC.md",
+      "nodeId": "9cb372e8-1e76-4833-85e5-eb795371bd71",
+      "fingerprint": "sha256:1ccf223570f9ca653aa06eafb95a17157d1c6318787b66741ad36fdb1a0a071c",
+      "status": "ok"
+    },
+    {
+      "relativePath": "ROADMAP.md",
+      "nodeId": "91ecd725-d288-46c2-93c6-d9c1a3c9c2ca",
+      "fingerprint": "sha256:9c032617fb6c7c10084f483e56fa844a5a15126db21f5ab024da2857ce9eb3a7",
+      "status": "ok"
+    },
+    {
+      "relativePath": "SECURITY.md",
+      "nodeId": "36913a2c-f64e-4b99-9f8b-32cc7e4670c8",
+      "fingerprint": "sha256:31d7c819d2edb9b8d60d397e93e73bef237f3ce131fe6b83a8ab21be8e7fb590",
+      "status": "ok"
+    },
+    {
+      "relativePath": "docs/README.md",
+      "nodeId": "d9bd9587-79f8-4ffe-9558-c96672d109b8",
+      "fingerprint": "sha256:dd471e9c0c961e74ab9657e8b8649e9345b4a62b331c268acbf054b42946ae98",
+      "status": "ok"
+    },
+    {
+      "relativePath": "examples/README.md",
+      "nodeId": "869b85c8-ff10-43d9-9939-3c737bee14c9",
+      "fingerprint": "sha256:dd9382217ae770e4414767b7ae948b21d130a5f0fe4ccdeeeeb55cb360df8de7",
+      "status": "ok"
+    },
+    {
+      "relativePath": "press/README.md",
+      "nodeId": "a92cf2cf-d0ee-47c5-8ac8-533b5070352a",
+      "fingerprint": "sha256:6b1e7db4afd1167a54518a86494d12123e3d6b70e4d4081685baa2862278be54",
+      "status": "ok"
+    },
+    {
+      "relativePath": "standards/README.md",
+      "nodeId": "539e6380-a157-4a82-bc2d-80dee84e5897",
+      "fingerprint": "sha256:91dff80d863a9ef5b6f5ed63aaef456368a18689a75f1981d0f02327337555ee",
+      "status": "ok"
+    }
+  ],
+  "errors": []
+}

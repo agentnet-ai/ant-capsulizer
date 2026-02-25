@@ -1,0 +1,64 @@
+{
+  "runId": "repo_run_2026-02-18T06-12-33-698Z__9b1d65c7f5c8",
+  "startedAt": "2026-02-18T06:12:33.699Z",
+  "finishedAt": "2026-02-18T06:12:33.739Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "mode": "repo",
+  "repoPath": "/Users/stevenrouse/projects/ant/agentnet",
+  "summary": {
+    "matched": 12,
+    "inserted": 0,
+    "errors": 12
+  },
+  "capsules": [],
+  "errors": [
+    {
+      "relativePath": "CODE_OF_CONDUCT.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "CONTRIBUTING.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "CONTRIBUTOR-QUICK-START.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "GOVERNANCE.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "README.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "RFC.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "ROADMAP.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "SECURITY.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "docs/README.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "examples/README.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "press/README.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    },
+    {
+      "relativePath": "standards/README.md",
+      "error": "Start ant-registrar at http://localhost:4002"
+    }
+  ]
+}

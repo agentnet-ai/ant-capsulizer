@@ -1,0 +1,80 @@
+{
+  "runId": "run_2026-01-21T16-41-59-731Z__d0ad5bb81d88",
+  "startedAt": "2026-01-21T16:41:59.731Z",
+  "finishedAt": "2026-01-21T16:42:01.293Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "queueName": "capsuleQueue",
+  "seed": {
+    "owner_slug": "caricatureconceptsmd-com",
+    "url": "https://caricatureconceptsmd.com"
+  },
+  "settings": {
+    "SINGLE_PAGE": true,
+    "MAX_DEPTH": 1,
+    "MAX_PAGES_PER_SITE": 10,
+    "PER_HOST_DELAY": 500,
+    "ENABLE_LLM": true,
+    "EFFECTIVE_ENABLE_LLM": true,
+    "CG_DETERMINISTIC": false,
+    "VALIDATE_ENVELOPE": true,
+    "SCHEMA_LOADED": true,
+    "WRITE_SNAPSHOTS": true,
+    "USER_AGENT": "AgentNet-Capsulizer/1.0 (+https://agentnet.ai)",
+    "CONCURRENCY": 6,
+    "ENABLE_INQUIRY_ENQUEUE": true,
+    "inquiryQueueName": "resolver-inquiry",
+    "inquiryJobName": "inquire"
+  },
+  "node": {
+    "nodeId": 138,
+    "nodeCategory": "ecommerce"
+  },
+  "summary": {
+    "pages": 1,
+    "capsules": 1,
+    "inferred": 1,
+    "errors": 0,
+    "inserted": 1,
+    "rejected": 0,
+    "schemaErrors": 0,
+    "siteStatus": {
+      "lastObserved": "2026-01-21T16:42:00.453Z",
+      "reachable": true,
+      "httpStatus": 200,
+      "error": null,
+      "latencyMs": 591,
+      "crawlStatus": "ok",
+      "finalUrl": "https://caricatureconceptsmd.com/",
+      "finalScheme": "https"
+    }
+  },
+  "capsules": [
+    {
+      "url": "https://caricatureconceptsmd.com",
+      "finishedAt": "2026-01-21T16:42:01.278Z",
+      "pages": 1,
+      "capsules": 1,
+      "inserted": 1,
+      "rejected": 0,
+      "schemaErrors": 0
+    }
+  ],
+  "errors": [],
+  "manifestPath": "./runs/run_2026-01-21T16-41-59-731Z__d0ad5bb81d88.json",
+  "nodeCategory": "ecommerce",
+  "siteStatus": {
+    "lastObserved": "2026-01-21T16:42:00.453Z",
+    "reachable": true,
+    "httpStatus": 200,
+    "error": null,
+    "latencyMs": 591,
+    "crawlStatus": "ok",
+    "finalUrl": "https://caricatureconceptsmd.com/",
+    "finalScheme": "https"
+  },
+  "agentnet:cgOutput": {
+    "capsulesInserted": 1,
+    "capsulesRejected": 0,
+    "schemaErrorsCount": 0
+  }
+}

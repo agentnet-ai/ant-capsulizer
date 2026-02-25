@@ -1,0 +1,15 @@
+{
+  "runId": "repo_run_2026-02-18T06-02-07-683Z__b01c95708259",
+  "startedAt": "2026-02-18T06:02:07.684Z",
+  "finishedAt": "2026-02-18T06:02:07.685Z",
+  "cgVersion": "cg-0.5-determinism-ajv-output",
+  "mode": "repo",
+  "repoPath": "/Users/stevenrouse/projects/ant/agentnet",
+  "summary": {
+    "matched": 0,
+    "inserted": 0,
+    "errors": 0
+  },
+  "capsules": [],
+  "errors": []
+}
