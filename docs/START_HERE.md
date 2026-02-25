@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This guide gets `ant-capsulizer` running locally and shows how it feeds data into the broader AgentNet reference stack.
+Set up and run `ant-capsulizer` locally as the ingestion stage in the AgentNet reference flow.
 
-## Prerequisites
+## Prereqs
 
 - Node.js and npm
 - MySQL
@@ -17,30 +17,26 @@ cp .env.example .env
 npm install
 ```
 
-## Run
-
-```bash
-npm start
-```
-
-Useful alternatives:
+## Run commands
 
 - `npm run dev`
+- `npm start`
 - `npm run worker`
-- `npm run seed`
-- `npm run report`
+- `npm run schedule`
+- `npm run dev:seed`
 - `npm run capsulize:repo`
 
 ## Typical local integration flow
 
 1. Start `ant-registrar` for node identity issuance.
 2. Start `ant-resolver` with a reachable database.
-3. Run `ant-capsulizer` to ingest content and write capsule-ready data.
+3. Start `ant-capsulizer` with one of the run commands above.
 4. Start `ant-orchestrator` to query resolver-backed outputs.
 
-## Links
+## Related Repositories
 
-- AgentNet: https://github.com/agentnet-ai/AgentNet
-- ant-registrar: https://github.com/agentnet-ai/ant-registrar
-- ant-resolver: https://github.com/agentnet-ai/ant-resolver
-- ant-orchestrator: https://github.com/agentnet-ai/ant-orchestrator
+- https://github.com/agentnet-ai/AgentNet
+- https://github.com/agentnet-ai/ant-capsulizer
+- https://github.com/agentnet-ai/ant-registrar
+- https://github.com/agentnet-ai/ant-resolver
+- https://github.com/agentnet-ai/ant-orchestrator

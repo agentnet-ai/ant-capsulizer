@@ -2,54 +2,57 @@
 
 Ingestion and capsule generation service for AgentNet that converts source content into structured records for downstream resolution.
 
+Status: Alpha / Reference Implementation
+Docs: https://www.agent-net.ai
+Org: https://github.com/agentnet-ai
+
 ## What it does
 
-`ant-capsulizer` gathers source material and transforms it into capsule-compatible data. It runs worker processes and related tooling for seed, scheduling, and report workflows.
+`ant-capsulizer` is the capsulizer component of the AgentNet reference architecture.
 
-The service writes data used by resolver infrastructure and can coordinate with registrar for node identity assignment when new origins are first encountered.
+It is responsible for ingestion and capsule-oriented data transformation workflows that prepare source content for resolver consumption.
 
-This repository is maintained as a reference implementation aligned to ANS Core v2.0 integration patterns.
+In a local development environment, it typically runs alongside `ant-registrar` for identity issuance and `ant-resolver` for downstream retrieval, with `ant-orchestrator` consuming resolved outputs.
 
 ## Where it fits
 
-Canonical flow:
+Within the canonical AgentNet flow:
 
-1. Capsulizer (this repository)
+1. Capsulizer
 2. Registrar
 3. Resolver
 4. Orchestrator
+
+This repository provides the capsulizer role.
 
 ## Quickstart
 
 ```bash
 cp .env.example .env
 npm install
-npm start
 ```
 
-Also available:
+Run commands:
 
 - `npm run dev`
+- `npm start`
 - `npm run worker`
-- `npm run seed`
-- `npm run report`
+- `npm run schedule`
+- `npm run dev:seed`
 - `npm run capsulize:repo`
 
 ## Configuration
 
 Runtime configuration is read from `.env`, with starter values in `.env.example`.
 
-## Repo structure
-
-- `src/` capsulizer service and tooling
-- `runs/` generated run artifacts
-- `seeds/` seed support files
-
 ## Status
 
-Alpha, reference implementation.
+Status: Alpha / Reference Implementation  
+These components are intended to demonstrate ANS-aligned architecture patterns.
 
 ## Related Repositories
+
+Other core AgentNet reference components:
 
 - https://github.com/agentnet-ai/AgentNet
 - https://github.com/agentnet-ai/ant-capsulizer
@@ -59,4 +62,4 @@ Alpha, reference implementation.
 
 ## License
 
-Apache License 2.0. See `LICENSE`.
+Apache License 2.0. See `LICENSE` for details.
