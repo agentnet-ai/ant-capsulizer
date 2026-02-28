@@ -45,6 +45,9 @@ Run commands:
 
 Runtime configuration is read from `.env`, with starter values in `.env.example`.
 
+- `ANT_WORKER_OWNER_ID` is required and must be a positive integer for seed/worker publish flows.
+- Discover it from registrar: `curl -s http://localhost:4002/v1/owners/ant-worker`
+
 ## Status
 
 Status: Alpha / Reference Implementation  
