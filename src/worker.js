@@ -40,6 +40,10 @@ const UA = process.env.USER_AGENT || "AgentNet-Capsulizer/1.0 (+https://agentnet
 const PER_HOST_DELAY = parseInt(process.env.PER_HOST_DELAY_MS || 500, 10);
 const MAX_DEPTH = parseInt(process.env.MAX_DEPTH || 10, 10);
 const MAX_PAGES_PER_SITE = parseInt(process.env.MAX_PAGES_PER_SITE || 10, 10);
+const ANT_WORKER_OWNER_SLUG = process.env.ANT_WORKER_OWNER_SLUG || "ant-worker";
+const ANT_WORKER_OWNER_ID_RAW = process.env.ANT_WORKER_OWNER_ID;
+const OWNER_ID_DISCOVERY_HINT =
+  "Set ANT_WORKER_OWNER_ID (discover via registrar GET /v1/owners/ant-worker)";
 
 const LOG_PATH = "./crawler.log";
 const SNAPSHOT_DIR = "./snapshots";
@@ -71,10 +75,62 @@ const ENABLE_INQUIRY_ENQUEUE =
 // Inquiry job naming
 const INQUIRY_JOB_NAME = process.env.INQUIRY_JOB_NAME || "inquire";
 
+function ownerSlugForPublish(inputOwnerSlug, sourceUrl) {
+  if (inputOwnerSlug && inputOwnerSlug !== ANT_WORKER_OWNER_SLUG) {
+    console.warn(
+      `[WORKER] Hostname-derived owner_slug detected (${inputOwnerSlug}) for ${sourceUrl}. ` +
+        `Overriding to ${ANT_WORKER_OWNER_SLUG}.`
+    );
+  }
+  return ANT_WORKER_OWNER_SLUG;
+}
+
+function parseRequiredOwnerId(raw, sourceName) {
+  if (raw === undefined || raw === null || String(raw).trim() === "") {
+    throw new Error(`[WORKER] ${sourceName} is required. ${OWNER_ID_DISCOVERY_HINT}`);
+  }
+  const parsed = Number(String(raw).trim());
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(
+      `[WORKER] ${sourceName} must be a positive integer. ${OWNER_ID_DISCOVERY_HINT}`
+    );
+  }
+  return parsed;
+}
+
+const ANT_WORKER_OWNER_ID = parseRequiredOwnerId(
+  ANT_WORKER_OWNER_ID_RAW,
+  "ANT_WORKER_OWNER_ID"
+);
+
+function ownerIdForPublish(inputOwnerId, sourceUrl) {
+  if (inputOwnerId === undefined || inputOwnerId === null || String(inputOwnerId).trim() === "") {
+    throw new Error(`[WORKER] job.owner_id is required for ${sourceUrl}`);
+  }
+  return parseRequiredOwnerId(inputOwnerId, "job.owner_id");
+}
+
+function assertOwnerSlugInvariant() {
+  const sampleUrls = [
+    "https://example.com/path",
+    "https://another-domain.net/resource",
+  ];
+
+  for (const sampleUrl of sampleUrls) {
+    const resolved = ownerSlugForPublish(null, sampleUrl);
+    if (resolved !== ANT_WORKER_OWNER_SLUG) {
+      throw new Error(
+        `[WORKER] owner_slug invariant failed for ${sampleUrl}. Expected "${ANT_WORKER_OWNER_SLUG}", got "${resolved}".`
+      );
+    }
+  }
+}
+
 // ------------------------------
 // Enhancement #1: Boot logging + sanity checks
 // ------------------------------
 (function bootLog() {
+  assertOwnerSlugInvariant();
   const safe = (v) => (v == null ? null : String(v));
   console.log("[WORKER] Boot config:");
   console.log("  pid:", process.pid);
@@ -95,6 +151,8 @@ const INQUIRY_JOB_NAME = process.env.INQUIRY_JOB_NAME || "inquire";
     passSet: !!(process.env.DB_PASS || process.env.DB_PASSWORD),
   });
   console.log("  Registrar:", safe(process.env.REGISTRAR_BASE_URL || "http://localhost:4002"));
+  console.log("  ANT_WORKER_OWNER_SLUG:", ANT_WORKER_OWNER_SLUG);
+  console.log("  ANT_WORKER_OWNER_ID:", ANT_WORKER_OWNER_ID);
 })();
 
 process.on("unhandledRejection", (err) => {
@@ -1059,7 +1117,9 @@ async function writeRunManifest({ runId, startedAt, finishedAt, seed, settings, 
 const worker = new Worker(
   queueName,
   async (job) => {
-    const { url, owner_slug } = job.data;
+    const { url, owner_slug: incomingOwnerSlug, owner_id: incomingOwnerId } = job.data;
+    const owner_slug = ownerSlugForPublish(incomingOwnerSlug, url);
+    const owner_id = ownerIdForPublish(incomingOwnerId, url);
 
     const runId = makeRunId();
     const startedAt = new Date().toISOString();
@@ -1083,9 +1143,10 @@ const worker = new Worker(
       ENABLE_INQUIRY_ENQUEUE,
       inquiryQueueName,
       inquiryJobName: INQUIRY_JOB_NAME,
+      ownerIdProvided: owner_id != null,
     };
 
-    const seed = { owner_slug, url };
+    const seed = { owner_slug, owner_id, url };
     const capsuleReceipts = [];
     const errors = [];
 
@@ -1113,6 +1174,7 @@ const worker = new Worker(
           const payload = {
             runId,
             owner_slug,
+            ...(owner_id != null ? { owner_id } : {}),
             nodeId,
             nodeOrigin: new URL(url).origin,
             capsules: receipts.map((c) => ({
