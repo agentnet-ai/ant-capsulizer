@@ -1,0 +1,113 @@
+# ===============================
+# ant-capsulizer project .gitignore
+# ===============================
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# --- Build outputs ---
+dist/
+build/
+.cache/
+.tmp/
+coverage/
+.vite/
+vite-dist/
+.vitest/
+
+# --- Environment files ---
+.env
+.env.*
+!.env.example
+
+# --- Logs ---
+*.log
+logs/
+debug.log
+error.log
+
+# --- Editor files ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+
+# --- Backend specific ---
+/agentnet-backend/uploads/
+/agentnet-backend/tmp/
+/agentnet-backend/logs/
+sequelize.log
+*.sqlite
+*.db
+
+# --- Frontend specific ---
+/agentnet-frontend/node_modules/
+/agentnet-frontend/dist/
+/agentnet-frontend/.vite/
+
+# --- Misc ---
+*.local
+*.bak
+*.tmp
+*.old
+*.orig
+*.rej
+*.gz
+
+# --- Git ---
+.gitignore
+.gitmodules
+.gitattributes
+
+# --- IDE ---
+*.iml
+.idea/
+*.code-workspace
+
+# --- System ---
+ehthumbs.db
+Icon?
+Desktop.ini
+# --- Crawling artifacts ---
+snapshots/
+seeds/
+*.csv
+
+# -----------------------------
+# Runtime Artifacts
+# -----------------------------
+runs/
+*.run.json
+
+# --- Local runtime data ---
+src/queue/
+src/tools/
+src/utils/
+
+# --- Registrar local state ---
+state/nodeMap.json
+
+# --- Logs & temp ---
+logs/
+*.log
+tmp/
+
+# Key material (never commit)
+**/*_private.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.kdbx
