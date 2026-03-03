@@ -27,6 +27,47 @@ const pool = mysql.createPool({
   connectionLimit: 10,
 });
 
+function normalizeSearchText(raw) {
+  return String(raw || "")
+    .replace(/[\u0000-\u001F\u007F]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function appendObjectFields(parts, obj, keys) {
+  if (!obj || typeof obj !== "object") return;
+  for (const [k, v] of Object.entries(obj)) {
+    if (!keys.has(String(k).toLowerCase())) continue;
+    if (typeof v === "string" || typeof v === "number") {
+      parts.push(String(v));
+    } else if (Array.isArray(v)) {
+      for (const item of v) {
+        if (typeof item === "string" || typeof item === "number") parts.push(String(item));
+      }
+    }
+  }
+}
+
+function buildSearchText({ capsuleUri, nodeUri, payload, capsuleJson }) {
+  const parts = [];
+  if (capsuleUri) parts.push(String(capsuleUri));
+  if (nodeUri) parts.push(String(nodeUri));
+
+  const commonKeys = new Set(["title", "name", "heading", "section", "snippet", "text", "summary"]);
+  appendObjectFields(parts, payload, commonKeys);
+  appendObjectFields(parts, capsuleJson, commonKeys);
+  appendObjectFields(parts, capsuleJson?.["agentnet:content"], commonKeys);
+
+  if (payload && typeof payload === "object") {
+    const compactPayload = JSON.stringify(payload);
+    if (compactPayload) parts.push(compactPayload.slice(0, 8000));
+  }
+
+  const normalized = normalizeSearchText(parts.join(" "));
+  return normalized.slice(0, 20000);
+}
+
 function parseRequiredOwnerId(raw, context) {
   const parsed = Number(String(raw ?? "").trim());
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -226,6 +267,12 @@ async function insertCapsule(
     capsule_json && typeof capsule_json === "object"
       ? { ...capsule_json, status }
       : { status, ...opts.meta };
+  const searchText = buildSearchText({
+    capsuleUri: capsule_uri,
+    nodeUri: node_uri,
+    payload: capsuleOut?.["agentnet:content"] || null,
+    capsuleJson: capsuleOut,
+  });
 
   await pool.query(
     `
@@ -238,9 +285,10 @@ async function insertCapsule(
       method,
       produced_at,
       pipeline_version,
-      capsule_json
+      capsule_json,
+      search_text
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON))
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?)
     ON DUPLICATE KEY UPDATE
       owner_id = IF(capsules.owner_id IS NULL OR capsules.owner_id = 0, VALUES(owner_id), capsules.owner_id),
       fingerprint = VALUES(fingerprint),
@@ -249,6 +297,7 @@ async function insertCapsule(
       produced_at = VALUES(produced_at),
       pipeline_version = VALUES(pipeline_version),
       capsule_json = VALUES(capsule_json),
+      search_text = IF(capsules.search_text IS NULL OR capsules.search_text = '', VALUES(search_text), capsules.search_text),
       updated_at = NOW()
     `,
     [
@@ -261,12 +310,17 @@ async function insertCapsule(
       producedAt,
       pipeline_version,
       JSON.stringify(capsuleOut),
+      searchText,
     ]
   );
 
   const [repair] = await pool.query(
-    `UPDATE capsules SET owner_id = ? WHERE capsule_uri = ? AND (owner_id IS NULL OR owner_id = 0)`,
-    [ownerId, capsule_uri]
+    `UPDATE capsules
+     SET owner_id = IF(owner_id IS NULL OR owner_id = 0, ?, owner_id),
+         search_text = IF(search_text IS NULL OR search_text = '', ?, search_text)
+     WHERE capsule_uri = ?
+       AND ((owner_id IS NULL OR owner_id = 0) OR (search_text IS NULL OR search_text = ''))`,
+    [ownerId, searchText, capsule_uri]
   );
   if (repair?.affectedRows > 0) {
     console.log(`[db] repaired capsules.owner_id capsule_uri=${capsule_uri} owner_id=${ownerId}`);
@@ -292,5 +346,6 @@ module.exports = {
   upsertNode,
   ensureNode,
   insertCapsule,
+  buildSearchText,
   query,
 };
