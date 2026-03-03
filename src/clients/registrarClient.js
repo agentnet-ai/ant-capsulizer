@@ -32,10 +32,11 @@ async function registrarFetch(urlPath, options = {}) {
   }
 }
 
-async function issueNode() {
+async function issueNode(payload = {}) {
   return registrarFetch("/nodes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 

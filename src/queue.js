@@ -1,5 +1,5 @@
 // src/queue.js
-require("dotenv").config();
+require("./bootstrap/env");
 
 const { Queue } = require("bullmq");
 const Redis = require("ioredis");
@@ -24,6 +24,12 @@ const connection = new Redis({
 // ------------------------------
 const queueName = process.env.CAPSULE_QUEUE_NAME || "capsuleQueue";
 const queue = new Queue(queueName, { connection });
+const queueConn = queue.opts?.connection || connection;
+const queuePrefix = queue.opts?.prefix || "bull";
+const queueHost = queueConn?.options?.host || REDIS_HOST;
+const queuePort = queueConn?.options?.port || REDIS_PORT;
+const queueDb = queueConn?.options?.db ?? 0;
+console.log(`[queue:init] name=${queueName}, prefix=${queuePrefix}, redis=${queueHost}:${queuePort}, db=${queueDb}`);
 
 // ------------------------------
 // Resolver inquiry queue (new)

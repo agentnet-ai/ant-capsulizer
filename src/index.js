@@ -1,5 +1,5 @@
 // src/index.js (ant-capsulizer)
-require("dotenv").config();
+require("./bootstrap/env");
 const { startWebApi } = require("./webApi");
 
 // This file is intentionally thin.

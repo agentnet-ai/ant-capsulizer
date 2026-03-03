@@ -1,5 +1,5 @@
 // src/worker.js
-require("dotenv").config();
+require("./bootstrap/env");
 
 const { Worker } = require("bullmq");
 const { chromium } = require("playwright");
@@ -41,7 +41,8 @@ const PER_HOST_DELAY = parseInt(process.env.PER_HOST_DELAY_MS || 500, 10);
 const MAX_DEPTH = parseInt(process.env.MAX_DEPTH || 10, 10);
 const MAX_PAGES_PER_SITE = parseInt(process.env.MAX_PAGES_PER_SITE || 10, 10);
 const ANT_WORKER_OWNER_SLUG = process.env.ANT_WORKER_OWNER_SLUG || "ant-worker";
-const ANT_WORKER_OWNER_ID_RAW = process.env.ANT_WORKER_OWNER_ID;
+const ANT_WORKER_OWNER_ID_RAW =
+  process.env.ANT_WORKER_OWNER_ID || process.env.OWNER_ID || process.env.DEFAULT_OWNER_ID;
 const OWNER_ID_DISCOVERY_HINT =
   "Set ANT_WORKER_OWNER_ID (discover via registrar GET /v1/owners/ant-worker)";
 
@@ -105,6 +106,9 @@ const ANT_WORKER_OWNER_ID = parseRequiredOwnerId(
 
 function ownerIdForPublish(inputOwnerId, sourceUrl) {
   if (inputOwnerId === undefined || inputOwnerId === null || String(inputOwnerId).trim() === "") {
+    if (ANT_WORKER_OWNER_ID_RAW !== undefined && ANT_WORKER_OWNER_ID_RAW !== null && String(ANT_WORKER_OWNER_ID_RAW).trim() !== "") {
+      return parseRequiredOwnerId(ANT_WORKER_OWNER_ID_RAW, "ANT_WORKER_OWNER_ID");
+    }
     throw new Error(`[WORKER] job.owner_id is required for ${sourceUrl}`);
   }
   return parseRequiredOwnerId(inputOwnerId, "job.owner_id");
@@ -568,7 +572,7 @@ function buildStatusContent({ effectiveOrigin, attemptedUrl, finalUrl, observedA
 // ------------------------------
 // Crawl
 // ------------------------------
-async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
+async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath, owner_id }) {
   const origin = new URL(baseUrl).origin;
 
   const visited = new Set();
@@ -711,7 +715,9 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
         // Status capsule should *not* be ok
         const status = "needs_review";
 
-        const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status);
+        const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status, {
+          owner_id,
+        });
 
         capsuleReceipts.push({
           pageUrl: url,
@@ -905,7 +911,9 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
       }
 
       // Insert capsule
-      const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status);
+      const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status, {
+        owner_id,
+      });
 
       capsuleReceipts.push({
         pageUrl: effectiveUrl,
@@ -1026,7 +1034,9 @@ async function crawlSite({ baseUrl, ctx, nodeId, cgRunId, manifestPath }) {
 
         const fingerprint = fp(CG_DETERMINISTIC ? stableFingerprintView(envelope) : envelope);
         const status = "needs_review";
-        const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status);
+        const ins = await insertCapsule(nodeId, envelope, fingerprint, harvestedAt, status, {
+          owner_id,
+        });
 
         capsuleReceipts.push({
           pageUrl: url,
@@ -1151,7 +1161,7 @@ const worker = new Worker(
     const errors = [];
 
     try {
-      const nodeId = await upsertNode(owner_slug, url);
+      const nodeId = await upsertNode(owner_slug, url, owner_id);
       console.log(`[WORKER] nodeId=${nodeId} for ${url}`);
 
       // Capsules will write this into the envelope immediately
@@ -1163,6 +1173,7 @@ const worker = new Worker(
         nodeId,
         cgRunId: runId,
         manifestPath,
+        owner_id,
       });
 
       // ------------------------------
@@ -1277,6 +1288,12 @@ const worker = new Worker(
   },
   { connection, concurrency: CONCURRENCY }
 );
+const workerConn = worker.opts?.connection || connection;
+const workerPrefix = worker.opts?.prefix || "bull";
+const workerHost = workerConn?.options?.host || process.env.REDIS_HOST || "127.0.0.1";
+const workerPort = workerConn?.options?.port || parseInt(process.env.REDIS_PORT || "6379", 10);
+const workerDb = workerConn?.options?.db ?? 0;
+console.log(`[worker:init] name=${queueName}, prefix=${workerPrefix}, redis=${workerHost}:${workerPort}, db=${workerDb}`);
 
 // ------------------------------
 // Worker lifecycle logging
